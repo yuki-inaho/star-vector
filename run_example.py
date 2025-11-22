@@ -17,6 +17,7 @@ Usage:
 """
 
 import argparse
+import time
 from pathlib import Path
 
 import torch
@@ -72,9 +73,11 @@ def main():
     batch = {"image": image}
 
     print(f"[generate] max_length={args.max_length}")
+    t0 = time.time()
     with torch.no_grad():
         raw_svg = model.generate_im2svg(batch, max_length=args.max_length)[0]
-    print(f"[generate] SVG length (chars): {len(raw_svg)}")
+    elapsed = time.time() - t0
+    print(f"[generate] done in {elapsed:.2f}s, SVG length (chars): {len(raw_svg)}")
 
     svg, raster_image = process_and_rasterize_svg(raw_svg)
 
