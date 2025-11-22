@@ -53,7 +53,7 @@ dependencies = [
     "Pillow",
     "protobuf",
     "openai",
-    "flash_attn==2.7.3"
+    "flash-attn @ https://github.com/Dao-AILab/flash-attention/releases/download/v2.7.3/flash_attn-2.7.3+cu12torch2.5cxx11abiFALSE-cp311-cp311-linux_x86_64.whl"
 
 ]
 
