@@ -15,6 +15,8 @@ set shell := ["bash", "-cu"]
 #   - Ports and model names are adjustable via variables.
 #   - Uses `uv run ...` to rely on your uv-managed environment.
 
+token_cmd := "[ -f ~/.bashrc ] && source ~/.bashrc >/dev/null 2>&1; printf \"%s\" \"${HUGGINGFACE_HUB_TOKEN:-${HF_HUB_TOKEN:-${HF_TOKEN:-}}}\""
+
 controller_host := "0.0.0.0"
 controller_port := "10000"
 
@@ -30,7 +32,7 @@ controller:
 
 worker model_name="starvector/starvector-1b-im2svg" model_path="starvector/starvector-1b-im2svg" port=worker_port device="cuda":
     # Pull HF_TOKEN from a login shell without touching the current venv/session.
-    HF_TOKEN="$(bash -lc '[ -f ~/.bashrc ] && source ~/.bashrc >/dev/null 2>&1; printf \"%s\" \"$HF_TOKEN\"')" uv run python -m starvector.serve.model_worker \
+    TOKEN="$(bash -lc '{{token_cmd}}')" HF_TOKEN="$TOKEN" HF_HUB_TOKEN="$TOKEN" HUGGINGFACE_HUB_TOKEN="$TOKEN" uv run python -m starvector.serve.model_worker \
       --host {{worker_host}} \
       --controller http://localhost:{{controller_port}} \
       --port {{port}} \
@@ -40,7 +42,7 @@ worker model_name="starvector/starvector-1b-im2svg" model_path="starvector/starv
       --device {{device}}
 
 worker-1b device="cuda" port=worker_port:
-    HF_TOKEN="$(bash -lc '[ -f ~/.bashrc ] && source ~/.bashrc >/dev/null 2>&1; printf \"%s\" \"$HF_TOKEN\"')" uv run python -m starvector.serve.model_worker \
+    TOKEN="$(bash -lc '{{token_cmd}}')" HF_TOKEN="$TOKEN" HF_HUB_TOKEN="$TOKEN" HUGGINGFACE_HUB_TOKEN="$TOKEN" uv run python -m starvector.serve.model_worker \
       --host {{worker_host}} \
       --controller http://localhost:{{controller_port}} \
       --port {{port}} \
@@ -50,7 +52,7 @@ worker-1b device="cuda" port=worker_port:
       --device {{device}}
 
 worker-8b device="cuda" port="41000":
-    HF_TOKEN="$(bash -lc '[ -f ~/.bashrc ] && source ~/.bashrc >/dev/null 2>&1; printf \"%s\" \"$HF_TOKEN\"')" uv run python -m starvector.serve.model_worker \
+    TOKEN="$(bash -lc '{{token_cmd}}')" HF_TOKEN="$TOKEN" HF_HUB_TOKEN="$TOKEN" HUGGINGFACE_HUB_TOKEN="$TOKEN" uv run python -m starvector.serve.model_worker \
       --host {{worker_host}} \
       --controller http://localhost:{{controller_port}} \
       --port {{port}} \
