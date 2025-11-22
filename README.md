@@ -81,6 +81,15 @@ cd star-vector
 ```
 
 2. Install Package
+
+**Install system dependencies (Debian/Ubuntu)**
+
+```bash
+sudo apt-get update
+sudo apt-get install -y libcairo2-dev libffi-dev pkg-config python3-dev
+```
+
+**Create and activate environment**
 ```Shell
 conda create -n starvector python=3.11.3 -y
 conda activate starvector
