@@ -11,7 +11,12 @@ class ImageEncoder(nn.Module):
         super(ImageEncoder, self).__init__()
         
         image_size = config.image_size
+        # Accept torch dtype or string; default to config.torch_dtype.
         torch_dtype = kwargs.get('model_precision', config.torch_dtype)
+        if isinstance(torch_dtype, str):
+            torch_dtype = getattr(torch, torch_dtype, torch.float32)
+        if torch_dtype is None:
+            torch_dtype = torch.float32
         # torch_dtype = torch.float32
         self.image_encoder_type = config.image_encoder_type
         if self.image_encoder_type == 'clip':
@@ -116,5 +121,4 @@ class ImageEncoder(nn.Module):
                 res.append(self.processor(image).unsqueeze(0)) # B, 3, H, W
             return res
         else:
-            return self.processor(images=images, return_tensors="pt").pixel_values.unsqueeze(0)
-    
+            return self.processor(images=images, return_tensors="pt").pixel_values.unsqueeze(0) 

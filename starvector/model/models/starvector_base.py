@@ -24,7 +24,12 @@ class StarVectorBase(nn.Module, ABC):
         super().__init__()
         # Task-specific layers
         self.task = kwargs.get('task', 'im2svg')
+        # Normalize dtype: accept torch.dtype or string.
         self.model_precision = kwargs.get('model_precision', config.torch_dtype)
+        if isinstance(self.model_precision, str):
+            self.model_precision = getattr(torch, self.model_precision, torch.float32)
+        if self.model_precision is None:
+            self.model_precision = torch.float32
         # Build Code LLM (StarCoder)
         self.svg_transformer = self._get_svg_transformer(config, **kwargs)
         
@@ -122,6 +127,16 @@ class StarVectorBase(nn.Module, ABC):
         target_mask = (tokens.input_ids == self.svg_transformer.tokenizer.pad_token_id)
         return tokens.input_ids.masked_fill(target_mask, -100)
 
+    def _get_image_dtype(self):
+        """Detect dtype of image encoder weights to align inputs."""
+        if self.use_image_encoder():
+            try:
+                first_param = next(self.image_encoder.parameters())
+                return first_param.dtype
+            except StopIteration:
+                pass
+        return self.model_precision
+
     @abstractmethod
     def _get_embeddings(self, input_ids):
         """Get embeddings from input ids - implementation differs between v1 and v2"""
@@ -142,7 +157,8 @@ class StarVectorBase(nn.Module, ABC):
 
     def get_image_embeddings(self, batch, device):
         """Get image embeddings"""
-        image = batch["image"].to(dtype=self.model_precision)
+        dtype = self._get_image_dtype()
+        image = batch["image"].to(device).to(dtype)
         embedded_image = self.image_encoder(image)
         conditioning_embeds = self.image_projection(embedded_image)
         return conditioning_embeds
@@ -150,7 +166,8 @@ class StarVectorBase(nn.Module, ABC):
     def embed_im_to_svg(self, batch, device):
         """Common image to SVG embedding logic"""
         # Process image
-        image = batch["image"].to(dtype=self.model_precision)
+        dtype = self._get_image_dtype()
+        image = batch["image"].to(device).to(dtype)
         embedded_image = self.image_encoder(image)
         conditioning_embeds = self.image_projection(embedded_image)
         conditioning_embeds_att = torch.ones(conditioning_embeds.size()[:-1], dtype=torch.long).to(device)
@@ -203,7 +220,8 @@ class StarVectorBase(nn.Module, ABC):
     def _prepare_generation_inputs(self, batch, prompt, device):
         """Common preparation for generation inputs"""
         image = batch["image"]
-        image = image.to(device).to(self.model_precision)
+        dtype = self._get_image_dtype()
+        image = image.to(device).to(dtype)
         
         embedded_image = self.image_encoder(image)
         embedded_image = self.image_projection(embedded_image)

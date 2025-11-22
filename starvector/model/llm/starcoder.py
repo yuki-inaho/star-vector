@@ -16,14 +16,24 @@ class StarCoderModel(nn.Module):
         model_config = AutoConfig.from_pretrained(config.starcoder_model_name, trust_remote_code=True)
         kwargs = {}
         kwargs['trust_remote_code'] = True
-        kwargs['torch_dtype'] = config.torch_dtype
+        torch_dtype = config.torch_dtype
+        # Accept both torch.dtype and string values in config.
+        if isinstance(torch_dtype, str):
+            import torch
+            torch_dtype = getattr(torch, torch_dtype, torch.float32)
+        kwargs['torch_dtype'] = torch_dtype
 
         # Configure special tokens for generation
         model_config.eos_token_id = self.tokenizer.eos_token_id
         model_config.pad_token_id = self.tokenizer.pad_token_id
         model_config.bos_token_id = self.tokenizer.bos_token_id
         
-        if utils.is_flash_attn_2_available():
+        # Disable flash attention when CUDA is unavailable or not requested.
+        import torch
+        if not torch.cuda.is_available():
+            config.use_flash_attn = False
+
+        if utils.is_flash_attn_2_available() and config.use_flash_attn:
             model_config.flash_attention = config.use_flash_attn
             model_config._attn_implementation = "flash_attention_2"
         else:
